@@ -215,31 +215,115 @@ class MBRepository extends Adapter {
         return null;
     }
 
-    runCommand(cmd) {
+    // Findet die iobroker-Binary (verschiedene Installationspfade)
+    findIobBin() {
+        const candidates = [
+            '/opt/iobroker/node_modules/.bin/iobroker',
+            '/usr/local/bin/iobroker',
+            '/usr/bin/iobroker',
+            'iobroker'   // fallback: PATH
+        ];
+        for (const p of candidates) {
+            if (p === 'iobroker') return p; // always try PATH as last resort
+            try { if (fs.existsSync(p)) return p; } catch (e) { /* ignore */ }
+        }
+        return 'iobroker';
+    }
+
+    // Baut den Befehl mit oder ohne sudo -n
+    buildCmd(iobArgs) {
+        const bin  = this.findIobBin();
+        const base = bin + ' ' + iobArgs;
+        // sudo -n = non-interactive: schlägt sofort fehl wenn Passwort nötig
+        const sudoCmd = 'sudo -n ' + base;
+        return { base, sudoCmd };
+    }
+
+    runRaw(cmd) {
         return new Promise((resolve, reject) => {
             this.addInstallLog('[CMD] ' + cmd);
-            const proc = exec(cmd, { cwd: '/opt/iobroker', env: { ...process.env, HOME: '/opt/iobroker' } });
-
+            const proc = exec(cmd, {
+                cwd: '/opt/iobroker',
+                env: { ...process.env, HOME: '/opt/iobroker' },
+                maxBuffer: 10 * 1024 * 1024
+            });
+            let stderrBuf = '';
             proc.stdout.on('data', data => {
                 String(data).split('\n').filter(l => l.trim()).forEach(line => {
                     this.addInstallLog(line);
                 });
             });
             proc.stderr.on('data', data => {
+                stderrBuf += data;
                 String(data).split('\n').filter(l => l.trim()).forEach(line => {
                     this.addInstallLog('[STDERR] ' + line);
                 });
             });
             proc.on('close', code => {
                 this.addInstallLog('[EXIT] Code: ' + code);
-                if (code === 0) resolve(code);
-                else reject(new Error('Prozess Exit-Code: ' + code));
+                if (code === 0) {
+                    resolve(code);
+                } else {
+                    reject(new Error('EXIT:' + code + '|STDERR:' + stderrBuf.trim()));
+                }
             });
             proc.on('error', err => {
                 this.addInstallLog('[ERROR] ' + err.message);
                 reject(err);
             });
         });
+    }
+
+    isSudoPasswordError(errMsg) {
+        return errMsg.includes('password is required') ||
+               errMsg.includes('terminal is required') ||
+               errMsg.includes('no tty present') ||
+               errMsg.includes('askpass');
+    }
+
+    // Hauptmethode: versucht erst ohne sudo, dann mit sudo -n, gibt klare Hinweise
+    async runCommand(iobArgs) {
+        const { base, sudoCmd } = this.buildCmd(iobArgs);
+        const useSudo = this.config.useSudo !== false;
+
+        // Versuch 1: direkt (iobroker läuft als iobroker-User → eigene node_modules)
+        this.addInstallLog('[INFO] Versuche ohne sudo: ' + base);
+        try {
+            await this.runRaw(base);
+            return;
+        } catch (e1) {
+            const msg1 = e1.message || '';
+            // Wenn kein Berechtigungsfehler → echter Fehler, nicht weiter versuchen
+            if (!msg1.includes('EACCES') && !msg1.includes('permission denied') &&
+                !msg1.includes('EPERM')  && !msg1.includes('EXIT:1') &&
+                !msg1.includes('EXIT:127')) {
+                throw e1;
+            }
+            this.addInstallLog('[INFO] Ohne sudo fehlgeschlagen, versuche sudo -n ...');
+        }
+
+        // Versuch 2: sudo -n (non-interactive)
+        if (useSudo) {
+            try {
+                await this.runRaw(sudoCmd);
+                return;
+            } catch (e2) {
+                const msg2 = e2.message || '';
+                if (this.isSudoPasswordError(msg2)) {
+                    // Sudo braucht Passwort → klare Hilfe ausgeben
+                    this.addInstallLog('[FAIL] sudo benötigt ein Passwort (kein Terminal verfügbar).');
+                    this.addInstallLog('[HILFE] Bitte folgenden Befehl auf dem Server ausführen:');
+                    this.addInstallLog('[HILFE]   sudo visudo');
+                    this.addInstallLog('[HILFE] Dann diese Zeile hinzufügen:');
+                    this.addInstallLog('[HILFE]   iobroker ALL=(ALL) NOPASSWD: ' + this.findIobBin());
+                    this.addInstallLog('[HILFE] Danach: iobroker restart mbrepository');
+                    throw new Error('sudo: Passwort erforderlich — NOPASSWD in sudoers konfigurieren (Details in der Konsole)');
+                }
+                throw e2;
+            }
+        }
+
+        throw new Error('Installation fehlgeschlagen (sudo deaktiviert, direkter Zugriff verweigert)');
     }
 
     // ─── HTTP Server ─────────────────────────────────────────────────────────
@@ -307,12 +391,11 @@ class MBRepository extends Adapter {
                         const { repoName } = JSON.parse(body);
                         const ghUser  = this.config.githubUser || 'MPunktBPunkt';
                         const repoUrl = 'https://github.com/' + ghUser + '/' + repoName;
-                        const sudo    = this.config.useSudo !== false ? 'sudo ' : '';
                         this.addInstallLog('[START] Installiere ' + repoName + '...');
                         res.writeHead(200, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ ok: true, msg: 'Installation gestartet' }));
                         try {
-                            await this.runCommand(sudo + 'iobroker add ' + repoUrl);
+                            await this.runCommand('add ' + repoUrl);
                             this.addLog('info', 'INSTALL', repoName + ' erfolgreich installiert');
                             this.addInstallLog('[SUCCESS] ' + repoName + ' installiert');
                             await this.scanRepositories();
@@ -336,7 +419,6 @@ class MBRepository extends Adapter {
                     try {
                         const { adapterName, repoName, tag } = JSON.parse(body);
                         const ghUser  = this.config.githubUser || 'MPunktBPunkt';
-                        const sudo    = this.config.useSudo !== false ? 'sudo ' : '';
                         let repoUrl   = 'https://github.com/' + ghUser + '/' + repoName;
                         if (tag) repoUrl += '#' + tag;
 
@@ -345,7 +427,7 @@ class MBRepository extends Adapter {
                         res.end(JSON.stringify({ ok: true, msg: 'Upgrade gestartet' }));
 
                         try {
-                            await this.runCommand(sudo + 'iobroker upgrade ' + adapterName + ' ' + repoUrl);
+                            await this.runCommand('upgrade ' + adapterName + ' ' + repoUrl);
                             this.addLog('info', 'UPGRADE', adapterName + ' erfolgreich aktualisiert');
                             this.addInstallLog('[SUCCESS] ' + adapterName + ' aktualisiert');
                             await this.scanRepositories();
@@ -382,10 +464,9 @@ class MBRepository extends Adapter {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ ok: true, msg: 'Self-Update gestartet' }));
                 const ghUser = this.config.githubUser || 'MPunktBPunkt';
-                const sudo   = this.config.useSudo !== false ? 'sudo ' : '';
                 this.addInstallLog('[START] Self-Update MBRepository...');
                 this.runCommand(
-                    sudo + 'iobroker upgrade mbrepository https://github.com/' + ghUser + '/iobroker.mbrepository'
+                    'upgrade mbrepository https://github.com/' + ghUser + '/iobroker.mbrepository'
                 ).then(() => {
                     this.addInstallLog('[SUCCESS] Self-Update abgeschlossen, Neustart...');
                     setTimeout(() => process.exit(0), 2000);
