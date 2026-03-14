@@ -1,0 +1,54 @@
+{
+  "type": "panel",
+  "items": {
+    "port": {
+      "type": "number",
+      "label": "HTTP Port",
+      "sm": 6,
+      "help": "Port des Web-Interfaces (Standard: 8091)",
+      "min": 1024,
+      "max": 65535,
+      "default": 8091
+    },
+    "githubUser": {
+      "type": "text",
+      "label": "GitHub Benutzername",
+      "sm": 6,
+      "help": "GitHub-Account der gescannt wird",
+      "default": "MPunktBPunkt"
+    },
+    "githubToken": {
+      "type": "password",
+      "label": "GitHub Token (optional)",
+      "sm": 12,
+      "help": "Pers\u00f6nliches GitHub-Token f\u00fcr h\u00f6here API-Limits (Settings \u2192 Developer settings \u2192 Personal access tokens)"
+    },
+    "autoScanOnStart": {
+      "type": "checkbox",
+      "label": "Beim Start automatisch scannen",
+      "sm": 6,
+      "default": true
+    },
+    "useSudo": {
+      "type": "checkbox",
+      "label": "sudo f\u00fcr iobroker-Befehle verwenden",
+      "sm": 6,
+      "default": true,
+      "help": "Ben\u00f6tigt passende /etc/sudoers-Konfiguration"
+    },
+    "verboseLogging": {
+      "type": "checkbox",
+      "label": "Ausf\u00fchrliches Logging",
+      "sm": 6,
+      "default": true
+    },
+    "logBuffer": {
+      "type": "number",
+      "label": "Log-Puffer (Eintr\u00e4ge)",
+      "sm": 6,
+      "default": 500,
+      "min": 50,
+      "max": 5000
+    }
+  }
+}

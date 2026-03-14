@@ -1,0 +1,84 @@
+{
+  "common": {
+    "name": "mbrepository",
+    "title": "MB Repository Manager",
+    "titleLang": {
+      "en": "MB Repository Manager",
+      "de": "MB Repository Manager"
+    },
+    "desc": {
+      "en": "Manage all MPunktBPunkt ioBroker adapters from GitHub",
+      "de": "Verwaltung aller MPunktBPunkt ioBroker-Adapter von GitHub"
+    },
+    "authors": ["MPunktBPunkt"],
+    "version": "0.1.0",
+    "news": {
+      "0.1.0": {
+        "en": "Initial release",
+        "de": "Erstver\u00f6ffentlichung"
+      }
+    },
+    "license": "MIT",
+    "platform": "Javascript/Node.js",
+    "main": "main.js",
+    "enabled": true,
+    "readme": "https://github.com/MPunktBPunkt/iobroker.mbrepository/blob/main/README.md",
+    "loglevel": "info",
+    "mode": "daemon",
+    "adminUI": {
+      "config": "json"
+    },
+    "jsonConfig": true
+  },
+  "native": {
+    "port": 8091,
+    "githubToken": "",
+    "githubUser": "MPunktBPunkt",
+    "autoScanOnStart": true,
+    "verboseLogging": true,
+    "logBuffer": 500,
+    "useSudo": true
+  },
+  "objects": [],
+  "instanceObjects": [
+    {
+      "_id": "info.connection",
+      "type": "state",
+      "common": {
+        "name": "Connected",
+        "type": "boolean",
+        "role": "indicator.connected",
+        "read": true,
+        "write": false,
+        "def": false
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.lastScan",
+      "type": "state",
+      "common": {
+        "name": "Last Scan",
+        "type": "string",
+        "role": "value",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.reposFound",
+      "type": "state",
+      "common": {
+        "name": "Repositories Found",
+        "type": "number",
+        "role": "value",
+        "read": true,
+        "write": false,
+        "def": 0
+      },
+      "native": {}
+    }
+  ]
+}

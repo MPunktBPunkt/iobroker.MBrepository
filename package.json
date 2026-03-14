@@ -1,0 +1,24 @@
+{
+  "name": "iobroker.mbrepository",
+  "version": "0.1.0",
+  "description": "ioBroker Adapter zur Verwaltung aller MPunktBPunkt GitHub-Repositories",
+  "author": "MPunktBPunkt",
+  "license": "MIT",
+  "main": "main.js",
+  "keywords": [
+    "ioBroker",
+    "GitHub",
+    "repository",
+    "adapter manager"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MPunktBPunkt/iobroker.mbrepository"
+  },
+  "dependencies": {
+    "@iobroker/adapter-core": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}
