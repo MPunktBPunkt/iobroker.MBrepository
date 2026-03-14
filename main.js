@@ -215,27 +215,31 @@ class MBRepository extends Adapter {
         return null;
     }
 
-    // Findet die iobroker-Binary (verschiedene Installationspfade)
-    findIobBin() {
-        const candidates = [
-            '/opt/iobroker/node_modules/.bin/iobroker',
-            '/usr/local/bin/iobroker',
-            '/usr/bin/iobroker',
-            'iobroker'   // fallback: PATH
-        ];
-        for (const p of candidates) {
-            if (p === 'iobroker') return p; // always try PATH as last resort
-            try { if (fs.existsSync(p)) return p; } catch (e) { /* ignore */ }
+    // Baut den korrekten node-basierten iobroker-Aufruf.
+    // Das .bin/iobroker ist ein Shell-Wrapper – exec() kann ihn nicht direkt starten.
+    // Zuverlaessig ist immer: node <iobroker.js> <args>
+    findIobCmd() {
+        const iobrokerJs = '/opt/iobroker/node_modules/iobroker.js';
+        const nodeExec   = process.execPath; // der laufende node-Prozess
+        if (fs.existsSync(iobrokerJs)) {
+            return { cmd: '"' + nodeExec + '" "' + iobrokerJs + '"', type: 'node-direct' };
         }
-        return 'iobroker';
+        const candidates = ['/usr/local/bin/iobroker', '/usr/bin/iobroker'];
+        for (const p of candidates) {
+            try { if (fs.existsSync(p)) return { cmd: p, type: 'system-bin' }; } catch (e) { /* */ }
+        }
+        // letzter Fallback: node_modules iobroker.js via bash
+        const nodeJs = '/opt/iobroker/node_modules/iobroker.js';
+        return { cmd: '"' + process.execPath + '" "' + nodeJs + '"', type: 'bash-fallback' };
     }
 
     // Baut den Befehl mit oder ohne sudo -n
     buildCmd(iobArgs) {
-        const bin  = this.findIobBin();
-        const base = bin + ' ' + iobArgs;
-        // sudo -n = non-interactive: schlägt sofort fehl wenn Passwort nötig
+        const { cmd, type } = this.findIobCmd();
+        const base    = cmd + ' ' + iobArgs;
+        // sudo -n = non-interactive: schlaegt sofort fehl wenn Passwort noetig
         const sudoCmd = 'sudo -n ' + base;
+        this.addInstallLog('[INFO] Befehlstyp: ' + type + ' | ' + cmd);
         return { base, sudoCmd };
     }
 
@@ -315,7 +319,7 @@ class MBRepository extends Adapter {
                     this.addInstallLog('[HILFE] Bitte folgenden Befehl auf dem Server ausführen:');
                     this.addInstallLog('[HILFE]   sudo visudo');
                     this.addInstallLog('[HILFE] Dann diese Zeile hinzufügen:');
-                    this.addInstallLog('[HILFE]   iobroker ALL=(ALL) NOPASSWD: ' + this.findIobBin());
+                    this.addInstallLog('[HILFE]   iobroker ALL=(ALL) NOPASSWD: ' + process.execPath + ' /opt/iobroker/node_modules/iobroker.js');
                     this.addInstallLog('[HILFE] Danach: iobroker restart mbrepository');
                     throw new Error('sudo: Passwort erforderlich — NOPASSWD in sudoers konfigurieren (Details in der Konsole)');
                 }
@@ -570,8 +574,8 @@ class MBRepository extends Adapter {
 '@keyframes spin{to{transform:rotate(360deg)}}',
 
 '.toggle-group{display:flex;align-items:center;gap:8px;background:var(--bg-hover);border-radius:var(--radius);padding:4px}',
-'.toggle-opt{padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--text-muted);transition:all .2s;border:none;background:none}',
-'.toggle-opt.active{background:var(--blue-dim);color:var(--blue)}',
+'.toggle-opt{padding:5px 12px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text-muted);transition:all .2s;border:none;background:none}',
+'.toggle-opt.active{background:#388bfd;color:#ffffff;font-weight:600}',
 
 '.scan-status{font-size:12px;color:var(--text-muted);margin-left:auto}',
 '.scan-status .dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px}',
@@ -590,12 +594,12 @@ class MBRepository extends Adapter {
 '.repo-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px}',
 
 '.badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;white-space:nowrap}',
-'.badge-installed{background:#1a3a1a;color:var(--green)}',
-'.badge-not-installed{background:#1a1a1a;color:var(--text-dim)}',
-'.badge-update{background:#3a2000;color:var(--orange)}',
-'.badge-latest{background:#0d2a0d;color:#3fb950}',
-'.badge-release{background:#1a2040;color:var(--blue)}',
-'.badge-tag{background:#2a1a40;color:#c084fc}',
+'.badge-installed{background:#1f4a1f;color:#7ee787;border:1px solid #3fb95040}',
+'.badge-not-installed{background:#2a2a2a;color:#aaaaaa;border:1px solid #44444440}',
+'.badge-update{background:#4a2c00;color:#ffa657;border:1px solid #e3b34150}',
+'.badge-latest{background:#1f4a1f;color:#7ee787;border:1px solid #3fb95050}',
+'.badge-release{background:#1a3060;color:#79c0ff;border:1px solid #58a6ff40}',
+'.badge-tag{background:#2d1f50;color:#d2a8ff;border:1px solid #c084fc40}',
 
 '.version-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:8px 0}',
 '.version-label{font-size:12px;color:var(--text-muted)}',
