@@ -31,7 +31,7 @@ Verbindungstest / Health-Check.
 {
   "ok": true,
   "adapter": "mbrepository",
-  "version": "0.1.0"
+  "version": "0.2.0"
 }
 ```
 
@@ -82,7 +82,8 @@ Liefert alle zuletzt gescannten Repositories mit vollständigen Metadaten.
 ```
 
 **Feld `scanning`:** `true` während ein Scan läuft – Client soll erneut pollen.  
-**Feld `installed`:** `null` wenn der Adapter nicht in `/opt/iobroker/node_modules/` gefunden wurde.
+**Feld `installed`:** `null` wenn der Adapter nicht in `/opt/iobroker/node_modules/` gefunden wurde.  
+**Hinweis:** Die Suche nach dem installierten Adapter ist case-insensitiv — `iobroker.MBrepository` und `iobroker.mbrepository` werden beide erkannt.
 
 ---
 

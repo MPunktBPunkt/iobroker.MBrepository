@@ -1,6 +1,6 @@
 # ioBroker MB Repository Manager
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/MPunktBPunkt/iobroker.mbrepository)
+[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://github.com/MPunktBPunkt/iobroker.mbrepository)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D16-brightgreen.svg)](https://nodejs.org)
 
@@ -11,9 +11,9 @@ Verwalte alle deine ioBroker-Adapter direkt aus GitHub — Scan, Versionsverglei
 ## Features
 
 * 🔍 **GitHub-Scanner** – Listet automatisch alle `iobroker.*`-Repositories von deinem GitHub-Account auf
-* 📦 **Versionsvergleich** – Zeigt installierte vs. verfügbare Version für jeden Adapter
+* 📦 **Versionsvergleich** – Zeigt installierte vs. verfügbare Version für jeden Adapter (semver-korrekt)
 * ⬆️ **Upgrade / Downgrade** – Wähle gezielt eine Release-Version oder Tag und installiere sie mit einem Klick
-* 🚀 **Neuinstallation** – Installiere noch nicht vorhandene Adapter direkt aus GitHub (mit sudo)
+* 🚀 **Neuinstallation** – Installiere noch nicht vorhandene Adapter direkt aus GitHub
 * 🔀 **Releases oder Tags** – Umschalter zwischen "nur getaggte Releases" und "alle Tags"
 * 🖥️ **Debug-Konsole** – Echtzeit-Ausgabe des Installations-Verlaufs direkt aus der Linux-Shell
 * 🔄 **Self-Update** – MBRepository aktualisiert sich selbst aus GitHub
@@ -29,118 +29,73 @@ Verwalte alle deine ioBroker-Adapter direkt aus GitHub — Scan, Versionsverglei
 iobroker add https://github.com/MPunktBPunkt/iobroker.mbrepository
 ```
 
-### Option B – manuell (ohne Internet / Offline)
+### Option B – manuell
 
 ```bash
-# 1. Ordner anlegen
 mkdir -p /opt/iobroker/node_modules/iobroker.mbrepository
-
-# 2. Dateien kopieren (USB, SCP, WinSCP …)
-#    Benötigte Dateien: main.js  io-package.json  package.json
-
-# 3. Abhängigkeiten installieren
+# Dateien kopieren: main.js  io-package.json  package.json
 cd /opt/iobroker/node_modules/iobroker.mbrepository
 npm install
-
-# 4. Adapter registrieren
 cd /opt/iobroker
 iobroker add mbrepository
-```
-
-### Adapter starten
-
-```bash
 iobroker start mbrepository
 ```
 
-Web-UI im Browser öffnen:
-```
-http://IP-DES-IOBROKER-SERVERS:8091/
-```
+Web-UI: `http://IP:8091/`
 
 ---
 
 ## Konfiguration
 
-Im ioBroker Admin unter **Adapter → MB Repository Manager** konfigurieren:
+| Einstellung | Standard | Beschreibung |
+|---|---|---|
+| HTTP Port | `8091` | Port des Web-Interfaces |
+| GitHub Benutzername | `MPunktBPunkt` | GitHub-Account der gescannt wird |
+| GitHub Token | leer | Optional: für höhere API-Limits (5000 statt 60/h) |
+| Beim Start automatisch scannen | ✅ | GitHub-Scan beim Adapter-Start ausführen |
+| sudo verwenden | ✅ | `sudo -n` als Fallback wenn nötig |
+| Ausführliches Logging | ✅ | Debug-Logs anzeigen |
+| Log-Puffer | `500` | Max. gepufferte Log-Einträge |
 
-| Einstellung               | Standard         | Beschreibung                                        |
-|---------------------------|------------------|-----------------------------------------------------|
-| HTTP Port                 | `8091`           | Port des Web-Interfaces                             |
-| GitHub Benutzername       | `MPunktBPunkt`   | GitHub-Account der gescannt wird                    |
-| GitHub Token              | leer             | Optional: für höhere API-Limits (5000 statt 60/h)   |
-| Beim Start automatisch scannen | ✅          | GitHub-Scan beim Adapter-Start ausführen            |
-| sudo verwenden            | ✅               | `sudo` vor iobroker-Befehlen (für Installation)     |
-| Ausführliches Logging     | ✅               | Debug-Logs anzeigen                                 |
-| Log-Puffer                | `500`            | Max. gepufferte Log-Einträge                        |
+### Kommandoausführung
 
-### sudo-Rechte konfigurieren
+Der Adapter läuft als `iobroker`-User und versucht immer erst **ohne sudo**:
 
-Damit der Adapter Adapter installieren und upgraden kann, muss der `iobroker`-User sudo-Rechte für iobroker-Befehle haben:
+```
+node /opt/iobroker/node_modules/iobroker.js add <url>
+```
+
+Falls das fehlschlägt, wird `sudo -n` versucht. Für NOPASSWD:
 
 ```bash
 sudo visudo
-```
-
-Folgende Zeile hinzufügen:
-```
-iobroker ALL=(ALL) NOPASSWD: /usr/bin/iobroker, /usr/local/bin/iobroker
-```
-
-### Firewall (falls nötig)
-
-```bash
-sudo ufw allow 8091/tcp
+# Folgende Zeile ergänzen:
+iobroker ALL=(ALL) NOPASSWD: /usr/bin/node /opt/iobroker/node_modules/iobroker.js
 ```
 
 ---
 
-## Web-UI
+## Web-UI Tabs
 
-### Tab: Daten
+| Tab | Inhalt |
+|---|---|
+| **Daten** | Repo-Liste, Scan, Toggle Releases/Tags, Status-Badges, Upgrade/Downgrade |
+| **Nodes** | Releases & Tags des ausgewählten Repos |
+| **Logs** | Adapter-Logs mit Level-Filter, Auto-Scroll, Export |
+| **System** | Versions-Check, Self-Update, Neu-Installation, Installations-Konsole |
 
-Die Hauptübersicht aller `iobroker.*`-Repositories:
+### Status-Badges
 
-| Element | Beschreibung |
-|---------|--------------|
-| **GitHub scannen** | Lädt alle Repos von GitHub, erkennt installierte Versionen |
-| **Nur Releases / Alle Tags** | Umschalter: welche Versionen in den Auswahlmenüs erscheinen |
-| **Repo-Karte** | Name, Beschreibung, installierte Version, neueste Version |
-| **Statusbadge** | ✓ Aktuell / ↑ Update verfügbar / nicht installiert |
-| **Versions-Auswahl** | Dropdown mit allen verfügbaren Releases oder Tags |
-| **Upgrade / Downgrade** | Installiert die gewählte Version (leer = neueste) |
-| **Installieren** | Erscheint nur bei nicht-installierten Adaptern |
-
-### Tab: Nodes
-
-Detailansicht eines gewählten Repositories:
-
-- Alle **Releases** mit Datum und Prerelease-Kennzeichnung
-- Alle **Tags** mit Commit-Hash
-
-### Tab: Logs
-
-Interne Adapter-Logs mit:
-
-- Filter nach Level (Info / Warnung / Fehler / Debug)
-- Auto-Scroll
-- Export als `.txt`-Datei
-
-Farbkodierung: 🔴 Fehler · 🟡 Warnung · 🔵 Info · ⬜ Debug · 🟢 System
-
-### Tab: System
-
-- **Adapter-Info**: Installierte vs. GitHub-Version, letzter Scan, Repo-Anzahl
-- **Auf Updates prüfen**: Vergleicht aktuell installierte Version mit GitHub
-- **Update installieren**: Erscheint wenn neue Version verfügbar
-- **Neuen Adapter installieren**: Dropdown mit allen nicht-installierten Adaptern
-- **Installations-Konsole**: Echtzeit-Ausgabe aller Shell-Befehle
+| Badge | Bedeutung |
+|---|---|
+| ✅ Aktuell (grün) | Installierte Version = GitHub-Version |
+| ⬆ Update verfügbar (orange) | Neuere Version auf GitHub |
+| ⬇ Neuer als GitHub (blau) | Lokal neuer als letzter GitHub-Release |
+| nicht installiert (grau) | Nicht in node_modules gefunden |
 
 ---
 
 ## Angelegte Datenpunkte
-
-Nach dem Start erscheinen unter `mbrepository.0`:
 
 ```
 mbrepository.0
@@ -151,67 +106,11 @@ mbrepository.0
 
 ---
 
-## HTTP API
-
-### Verbindungstest
-
-```
-GET http://host:8091/api/ping
-→ { "ok": true, "adapter": "mbrepository", "version": "0.1.0" }
-```
-
-### Repositories abrufen
-
-```
-GET http://host:8091/api/repos
-→ { "ok": true, "repos": [...], "lastScan": "...", "scanning": false }
-```
-
-### Scan starten
-
-```
-POST http://host:8091/api/scan
-→ { "ok": true, "msg": "Scan gestartet" }
-```
-
-### Adapter installieren
-
-```
-POST http://host:8091/api/install
-Content-Type: application/json
-
-{ "repoName": "iobroker.kostalpiko" }
-→ { "ok": true, "msg": "Installation gestartet" }
-```
-
-### Upgrade / Downgrade
-
-```
-POST http://host:8091/api/upgrade
-Content-Type: application/json
-
-{
-  "adapterName": "metermaster",
-  "repoName":    "iobroker.metermaster",
-  "tag":         "v0.3.0"
-}
-→ { "ok": true, "msg": "Upgrade gestartet" }
-```
-
-Vollständige API-Dokumentation in [Schnittstellen.md](Schnittstellen.md).
-
----
-
 ## Update
 
-### Option A – über das Web-UI (empfohlen)
-
-Browser `http://IP:8091/` → Tab **⚙️ System** → **„Auf Updates prüfen"**  
-Bei verfügbarem Update: **„Update installieren"** klicken.
-
-### Option B – Kommandozeile
-
 ```bash
+# Über Web-UI: http://IP:8091/ -> System -> Auf Updates prüfen
+# Oder:
 iobroker upgrade mbrepository https://github.com/MPunktBPunkt/iobroker.mbrepository
 iobroker restart mbrepository
 ```
@@ -220,18 +119,17 @@ iobroker restart mbrepository
 
 ## Changelog
 
-### 0.1.0 (2026-03-14)
+### 0.2.0 (2026-03-15)
+* **Bugfix:** Groß-/Kleinschreibung bei Adaptererkennung — `iobroker.MBrepository` wird jetzt korrekt als installiert erkannt (case-insensitive Suche in `node_modules`)
+* **Bugfix:** Semver-Vergleich korrigiert — `0.6.0 > v0.5.0` zeigt jetzt "⬇ Neuer als GitHub" statt "Update verfügbar"
+* **Neu:** Badge "⬇ Neuer als GitHub" (blau) wenn lokale Version neuer als GitHub-Release
+* **Bugfix:** sudo-Fallback nur bei echten Berechtigungsfehlern (nicht mehr bei jedem EXIT:1)
+* **Bugfix:** iobroker-Befehl via `node iobroker.js` statt Shell-Wrapper (behebt "Syntax error: word unexpected")
+* **Verbessert:** Kontrast aller Badges und Toggle-Buttons deutlich erhöht
+* **Fix:** Ungenutzten `spawn`-Import entfernt
 
-* Erstveröffentlichung
-* GitHub-Scanner für alle `iobroker.*`-Repositories
-* Versionsvergleich: installiert vs. GitHub-Release
-* Upgrade und Downgrade auf beliebige Tag-Version
-* Neuinstallation nicht vorhandener Adapter (mit sudo)
-* Umschalter: nur Releases oder alle Tags
-* Debug-Konsole mit Shell-Ausgabe in Echtzeit
-* Self-Update via GitHub Releases API
-* Log-Viewer mit Filter und Export
-* ioBroker States: connection, lastScan, reposFound
+### 0.1.0 (2026-03-14)
+* Erstveröffentlichung: GitHub-Scanner, Versionsvergleich, Upgrade/Downgrade, Neuinstallation, Debug-Konsole, Log-Viewer, Self-Update
 
 ---
 

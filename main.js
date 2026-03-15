@@ -5,7 +5,7 @@ const http  = require('http');
 const https = require('https');
 const fs    = require('fs');
 const path  = require('path');
-const { exec, spawn } = require('child_process');
+const { exec }        = require('child_process');
 
 const IOBROKER_MODULES = '/opt/iobroker/node_modules';
 
@@ -205,11 +205,35 @@ class MBRepository extends Adapter {
     }
 
     getInstalledVersion(repoName) {
+        // Versuche verschiedene Schreibweisen: original, lowercase, uppercase-ersten-Buchstaben
+        const variants = [
+            repoName,
+            repoName.toLowerCase(),
+            repoName.charAt(0).toUpperCase() + repoName.slice(1),
+            // iobroker.MBrepository -> iobroker.mbrepository etc.
+            repoName.replace(/\.(.)/,  (_, c) => '.' + c.toUpperCase()),
+        ];
+        for (const name of variants) {
+            try {
+                const pkgPath = path.join(IOBROKER_MODULES, name, 'package.json');
+                if (fs.existsSync(pkgPath)) {
+                    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+                    if (pkg.version) return pkg.version;
+                }
+            } catch (e) { /* ignore */ }
+        }
+        // Noch robuster: alle Ordner in node_modules durchsuchen (case-insensitive)
         try {
-            const pkgPath = path.join(IOBROKER_MODULES, repoName, 'package.json');
-            if (fs.existsSync(pkgPath)) {
-                const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-                return pkg.version || null;
+            const lowerName = repoName.toLowerCase();
+            const entries = fs.readdirSync(IOBROKER_MODULES);
+            for (const entry of entries) {
+                if (entry.toLowerCase() === lowerName) {
+                    const pkgPath = path.join(IOBROKER_MODULES, entry, 'package.json');
+                    if (fs.existsSync(pkgPath)) {
+                        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+                        if (pkg.version) return pkg.version;
+                    }
+                }
             }
         } catch (e) { /* ignore */ }
         return null;
@@ -297,13 +321,16 @@ class MBRepository extends Adapter {
             return;
         } catch (e1) {
             const msg1 = e1.message || '';
-            // Wenn kein Berechtigungsfehler → echter Fehler, nicht weiter versuchen
-            if (!msg1.includes('EACCES') && !msg1.includes('permission denied') &&
-                !msg1.includes('EPERM')  && !msg1.includes('EXIT:1') &&
-                !msg1.includes('EXIT:127')) {
+            // Nur bei klaren Berechtigungsfehlern sudo versuchen — EXIT:1 allein reicht nicht
+            const isPermError = msg1.includes('EACCES') ||
+                                msg1.includes('permission denied') ||
+                                msg1.includes('EPERM')  ||
+                                msg1.includes('EXIT:127'); // command not found
+            if (!isPermError) {
+                // Echter Fehler (npm-Error, Netzwerk etc.) — sudo hilft hier nicht
                 throw e1;
             }
-            this.addInstallLog('[INFO] Ohne sudo fehlgeschlagen, versuche sudo -n ...');
+            this.addInstallLog('[INFO] Berechtigungsfehler ohne sudo, versuche sudo -n ...');
         }
 
         // Versuch 2: sudo -n (non-interactive)
@@ -597,6 +624,7 @@ class MBRepository extends Adapter {
 '.badge-installed{background:#1f4a1f;color:#7ee787;border:1px solid #3fb95040}',
 '.badge-not-installed{background:#2a2a2a;color:#aaaaaa;border:1px solid #44444440}',
 '.badge-update{background:#4a2c00;color:#ffa657;border:1px solid #e3b34150}',
+'.badge-newer{background:#0a2a3a;color:#79c0ff;border:1px solid #58a6ff50}',
 '.badge-latest{background:#1f4a1f;color:#7ee787;border:1px solid #3fb95050}',
 '.badge-release{background:#1a3060;color:#79c0ff;border:1px solid #58a6ff40}',
 '.badge-tag{background:#2d1f50;color:#d2a8ff;border:1px solid #c084fc40}',
@@ -865,6 +893,18 @@ class MBRepository extends Adapter {
 '  }, 1500);',
 '}',
 '',
+'// ── SemVer Vergleich ────────────────────────────────────────────────────',
+'function semverCmp(a, b) {',
+'  var pa = a.split(".").map(function(x){ return parseInt(x,10)||0; });',
+'  var pb = b.split(".").map(function(x){ return parseInt(x,10)||0; });',
+'  var len = Math.max(pa.length, pb.length);',
+'  for (var i=0; i<len; i++) {',
+'    var diff = (pa[i]||0) - (pb[i]||0);',
+'    if (diff !== 0) return diff;',
+'  }',
+'  return 0;',
+'}',
+'',
 '// ── Render Repo List ───────────────────────────────────────────────────',
 'function renderRepoList() {',
 '  var el = document.getElementById("repoList");',
@@ -882,8 +922,13 @@ class MBRepository extends Adapter {
 '',
 '    var statusBadge = "";',
 '    if (r.installed && latestLabel) {',
-'      if (r.installed === latestLabel || "v" + r.installed === latestLabel || r.installed === latestLabel.replace(/^v/,"")) {',
+'      var instClean   = r.installed.replace(/^v/, "");',
+'      var latestClean = latestLabel.replace(/^v/, "");',
+'      var cmp = semverCmp(instClean, latestClean);',
+'      if (cmp === 0) {',
 '        statusBadge = "<span class=\\"badge badge-latest\\">&#10003; Aktuell</span>";',
+'      } else if (cmp > 0) {',
+'        statusBadge = "<span class=\\"badge badge-newer\\">&#11015; Neuer als GitHub</span>";',
 '      } else {',
 '        statusBadge = "<span class=\\"badge badge-update\\">&#8679; Update verf\u00fcgbar</span>";',
 '      }',

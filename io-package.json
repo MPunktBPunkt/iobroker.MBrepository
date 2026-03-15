@@ -10,12 +10,18 @@
       "en": "Manage all MPunktBPunkt ioBroker adapters from GitHub",
       "de": "Verwaltung aller MPunktBPunkt ioBroker-Adapter von GitHub"
     },
-    "authors": ["MPunktBPunkt"],
-    "version": "0.1.0",
+    "authors": [
+      "MPunktBPunkt"
+    ],
+    "version": "0.2.0",
     "news": {
       "0.1.0": {
         "en": "Initial release",
-        "de": "Erstver\u00f6ffentlichung"
+        "de": "Erstveröffentlichung"
+      },
+      "0.2.0": {
+        "en": "Bugfix: case-insensitive adapter detection, correct semver comparison, sudo fix",
+        "de": "Bugfix: Groß-/Kleinschreibung bei Adaptererkennung, korrekter Semver-Vergleich, sudo-Fix"
       }
     },
     "license": "MIT",
