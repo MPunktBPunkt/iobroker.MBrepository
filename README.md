@@ -1,6 +1,6 @@
 # ioBroker MB Repository Manager
 
-[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](https://github.com/MPunktBPunkt/iobroker.mbrepository)
+[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/MPunktBPunkt/iobroker.mbrepository)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D16-brightgreen.svg)](https://nodejs.org)
 
@@ -118,6 +118,13 @@ iobroker restart mbrepository
 ---
 
 ## Changelog
+
+### 0.5.0 (2026-03-18)
+* **Bugfix root cause:** `iobroker upgrade <name> <url>` funktioniert nur für Adapter im offiziellen Repository → Exit 53
+* **Fix Upgrade:** `iobroker url <url>` + `iobroker restart <name>`
+* **Fix Neuinstallation:** `iobroker url <url>` + `iobroker add <name>` + `iobroker start <name>`
+* **Fix Self-Update:** gleiche Korrektur
+* Konsole zeigt jetzt jeden Schritt einzeln: `[STEP 1/2]`, `[STEP 2/2]`
 
 ### 0.4.0 (2026-03-18)
 * **Bugfix:** JS-Escaping in `init()` und `showScanError()` korrigiert — `"` in single-quoted Node.js-Strings erzeugte ungültiges Browser-JS → alle Tabs funktionierten nicht

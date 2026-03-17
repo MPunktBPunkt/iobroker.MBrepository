@@ -13,7 +13,7 @@
     "authors": [
       "MPunktBPunkt"
     ],
-    "version": "0.4.0",
+    "version": "0.5.0",
     "news": {
       "0.1.0": {
         "en": "Initial release",
@@ -30,6 +30,10 @@
       "0.4.0": {
         "en": "Bugfix: JS escaping in init/showScanError fixed (tabs broken)",
         "de": "Bugfix: JS-Escaping in init/showScanError korrigiert (Tabs funktionierten nicht)"
+      },
+      "0.5.0": {
+        "en": "Bugfix: use 'iobroker url' instead of 'iobroker upgrade' for GitHub adapters",
+        "de": "Bugfix: 'iobroker url' statt 'iobroker upgrade' fuer GitHub-Adapter"
       }
     },
     "license": "MIT",

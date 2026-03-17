@@ -441,9 +441,18 @@ class MBRepository extends Adapter {
                         res.writeHead(200, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ ok: true, msg: 'Installation gestartet' }));
                         try {
-                            await this.runCommand('add ' + repoUrl);
+                            const adName = repoName.replace(/^iobroker\./ , '').toLowerCase();
+                            // 1. Lade Adapter-Paket von GitHub
+                            this.addInstallLog('[STEP 1/3] iobroker url ' + repoUrl);
+                            await this.runCommand('url ' + repoUrl);
+                            // 2. Instanz anlegen
+                            this.addInstallLog('[STEP 2/3] iobroker add ' + adName);
+                            await this.runCommand('add ' + adName);
+                            // 3. Starten
+                            this.addInstallLog('[STEP 3/3] iobroker start ' + adName);
+                            await this.runCommand('start ' + adName);
                             this.addLog('info', 'INSTALL', repoName + ' erfolgreich installiert');
-                            this.addInstallLog('[SUCCESS] ' + repoName + ' installiert');
+                            this.addInstallLog('[SUCCESS] ' + repoName + ' installiert und gestartet');
                             await this.scanRepositories();
                         } catch (e) {
                             this.addLog('error', 'INSTALL', 'Installation fehlgeschlagen: ' + e.message);
@@ -473,9 +482,14 @@ class MBRepository extends Adapter {
                         res.end(JSON.stringify({ ok: true, msg: 'Upgrade gestartet' }));
 
                         try {
-                            await this.runCommand('upgrade ' + adapterName + ' ' + repoUrl);
+                            // 1. Lade neue Version von GitHub
+                            this.addInstallLog('[STEP 1/2] iobroker url ' + repoUrl);
+                            await this.runCommand('url ' + repoUrl);
+                            // 2. Adapter neu starten (ioBroker lädt die neue Version beim Start)
+                            this.addInstallLog('[STEP 2/2] iobroker restart ' + adapterName);
+                            await this.runCommand('restart ' + adapterName);
                             this.addLog('info', 'UPGRADE', adapterName + ' erfolgreich aktualisiert');
-                            this.addInstallLog('[SUCCESS] ' + adapterName + ' aktualisiert');
+                            this.addInstallLog('[SUCCESS] ' + adapterName + ' aktualisiert und neu gestartet');
                             await this.scanRepositories();
                         } catch (e) {
                             this.addLog('error', 'UPGRADE', 'Upgrade fehlgeschlagen: ' + e.message);
@@ -511,9 +525,13 @@ class MBRepository extends Adapter {
                 res.end(JSON.stringify({ ok: true, msg: 'Self-Update gestartet' }));
                 const ghUser = this.config.githubUser || 'MPunktBPunkt';
                 this.addInstallLog('[START] Self-Update MBRepository...');
-                this.runCommand(
-                    'upgrade mbrepository https://github.com/' + ghUser + '/iobroker.mbrepository'
-                ).then(() => {
+                const selfUrl = 'https://github.com/' + ghUser + '/iobroker.mbrepository';
+                this.addInstallLog('[STEP 1/2] iobroker url ' + selfUrl);
+                this.runCommand('url ' + selfUrl)
+                .then(() => {
+                    this.addInstallLog('[STEP 2/2] iobroker restart mbrepository');
+                    return this.runCommand('restart mbrepository');
+                }).then(() => {
                     this.addInstallLog('[SUCCESS] Self-Update abgeschlossen, Neustart...');
                     setTimeout(() => process.exit(0), 2000);
                 }).catch(e => {
