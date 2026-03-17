@@ -26,7 +26,7 @@ Verwalte alle deine ioBroker-Adapter direkt aus GitHub — Scan, Versionsverglei
 ### Option A – direkt von GitHub (empfohlen)
 
 ```bash
-iobroker add https://github.com/MPunktBPunkt/iobroker.mbrepository
+iobroker url https://github.com/MPunktBPunkt/iobroker.mbrepository
 ```
 
 ### Option B – manuell
