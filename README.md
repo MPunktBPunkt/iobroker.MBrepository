@@ -1,6 +1,6 @@
 # ioBroker MB Repository Manager
 
-[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://github.com/MPunktBPunkt/iobroker.mbrepository)
+[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/MPunktBPunkt/iobroker.mbrepository)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D16-brightgreen.svg)](https://nodejs.org)
 
@@ -118,6 +118,13 @@ iobroker restart mbrepository
 ---
 
 ## Changelog
+
+### 0.3.0 (2026-03-15)
+* **Bugfix:** `req.abort()` durch `req.destroy()` ersetzt (deprecated in Node.js 14+, Ursache für stille Scan-Fehler)
+* **Bugfix:** GitHub API-Fehler (Rate-Limit, Auth, Not Found) werden jetzt erkannt und im UI angezeigt statt zu 0 Repos führen
+* **Neu:** Sichtbare Fehlermeldung im Daten-Tab wenn Scan scheitert (mit Tipp zum GitHub-Token)
+* **Neu:** Automatischer Scan beim Seitenaufruf wenn noch keine Repos geladen sind
+* **Neu:** Lade-Animation während Scan läuft
 
 ### 0.2.0 (2026-03-15)
 * **Bugfix:** Groß-/Kleinschreibung bei Adaptererkennung — `iobroker.MBrepository` wird jetzt korrekt als installiert erkannt (case-insensitive Suche in `node_modules`)

@@ -13,7 +13,7 @@
     "authors": [
       "MPunktBPunkt"
     ],
-    "version": "0.2.0",
+    "version": "0.3.0",
     "news": {
       "0.1.0": {
         "en": "Initial release",
@@ -22,6 +22,10 @@
       "0.2.0": {
         "en": "Bugfix: case-insensitive adapter detection, correct semver comparison, sudo fix",
         "de": "Bugfix: Groß-/Kleinschreibung bei Adaptererkennung, korrekter Semver-Vergleich, sudo-Fix"
+      },
+      "0.3.0": {
+        "en": "Bugfix: req.abort() replaced, GitHub API errors now shown in UI, auto-scan on empty state",
+        "de": "Bugfix: req.abort() ersetzt, GitHub API Fehler werden im UI angezeigt, Auto-Scan bei leerem Zustand"
       }
     },
     "license": "MIT",

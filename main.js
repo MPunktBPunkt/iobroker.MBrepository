@@ -17,8 +17,9 @@ class MBRepository extends Adapter {
         this.installLog  = [];
         this.repos       = [];
         this.lastScan    = null;
-        this.scanRunning = false;
-        this.pack        = null;
+        this.scanRunning  = false;
+        this.lastScanError= null;
+        this.pack         = null;
 
         this.on('ready',  this.onReady.bind(this));
         this.on('unload', this.onUnload.bind(this));
@@ -102,12 +103,24 @@ class MBRepository extends Adapter {
                 let data = '';
                 res.on('data', c => { data += c; });
                 res.on('end', () => {
-                    try { resolve(JSON.parse(data)); }
-                    catch (e) { reject(new Error('JSON parse error: ' + e.message)); }
+                    try {
+                        const parsed = JSON.parse(data);
+                        // GitHub API gibt bei Fehlern { message: '...', documentation_url: '...' }
+                        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && parsed.message) {
+                            reject(new Error('GitHub API: ' + parsed.message +
+                                (parsed.documentation_url ? ' (' + parsed.documentation_url + ')' : '')));
+                        } else if (res.statusCode && res.statusCode >= 400) {
+                            reject(new Error('GitHub HTTP ' + res.statusCode + ': ' + JSON.stringify(parsed).substring(0, 200)));
+                        } else {
+                            resolve(parsed);
+                        }
+                    } catch (e) {
+                        reject(new Error('JSON parse error (HTTP ' + res.statusCode + '): ' + data.substring(0, 200)));
+                    }
                 });
             });
             req.on('error', reject);
-            req.setTimeout(15000, () => { req.abort(); reject(new Error('Timeout')); });
+            req.setTimeout(15000, () => { req.destroy(); reject(new Error('Timeout nach 15s')); });
         });
     }
 
@@ -116,7 +129,8 @@ class MBRepository extends Adapter {
             this.addLog('warn', 'SCAN', 'Scan bereits aktiv, \u00fcberspringe.');
             return this.repos;
         }
-        this.scanRunning = true;
+        this.scanRunning  = true;
+        this.lastScanError = null;
         const ghUser = this.config.githubUser || 'MPunktBPunkt';
         this.addLog('info', 'SCAN', 'GitHub-Repositories werden gescannt (' + ghUser + ')...');
 
@@ -197,6 +211,7 @@ class MBRepository extends Adapter {
 
             return enriched;
         } catch (e) {
+            this.lastScanError = e.message;
             this.addLog('error', 'SCAN', 'Fehler beim Scannen: ' + e.message);
             throw e;
         } finally {
@@ -387,7 +402,7 @@ class MBRepository extends Adapter {
             // ── API: repos ────────────────────────────────────────────────
             if (pathname === '/api/repos' && req.method === 'GET') {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ ok: true, repos: this.repos, lastScan: this.lastScan, scanning: this.scanRunning }));
+                res.end(JSON.stringify({ ok: true, repos: this.repos, lastScan: this.lastScan, scanning: this.scanRunning, scanError: this.lastScanError }));
                 return;
             }
 
@@ -1207,10 +1222,19 @@ class MBRepository extends Adapter {
 '',
 '// ── Init ─────────────────────────────────────────────────────────────',
 '(function init() {',
+'  // Lade-Zustand sofort anzeigen',
+'  document.getElementById("repoList").innerHTML =',
+'    "<div class=\"empty-state\"><div class=\"icon\" style=\"animation:spin 1.5s linear infinite;display:inline-block\">&#8635;</div><p>Verbindung zum Adapter...</p></div>";',
+'',
 '  fetch("/api/repos")',
 '    .then(function(r){ return r.json(); })',
 '    .then(function(d) {',
-'      if (d.repos && d.repos.length) {',
+'      if (d.scanError && !d.repos.length) {',
+'        // Scan-Fehler anzeigen',
+'        showScanError(d.scanError);',
+'        document.getElementById("scanStatusText").textContent = "Scan fehlgeschlagen";',
+'        document.getElementById("scanDot").style.background = "var(--red)";',
+'      } else if (d.repos && d.repos.length) {',
 '        repos = d.repos;',
 '        renderRepoList();',
 '        populateNodesSelect();',
@@ -1220,15 +1244,36 @@ class MBRepository extends Adapter {
 '          "Letzter Scan: " + (d.lastScan ? new Date(d.lastScan).toLocaleTimeString("de") : "-");',
 '        document.getElementById("sysLastScan").textContent = d.lastScan ? new Date(d.lastScan).toLocaleString("de") : "-";',
 '        document.getElementById("sysRepoCount").textContent = repos.length;',
+'      } else if (!d.scanning) {',
+'        // Keine Repos, kein Fehler, kein aktiver Scan -> Auto-Scan starten',
+'        document.getElementById("repoList").innerHTML =',
+'          "<div class=\"empty-state\"><div class=\"icon\" style=\"animation:spin 1.5s linear infinite;display:inline-block\">&#8635;</div><p>Scan wird gestartet...</p></div>";',
+'        doScan();',
+'        return;',
 '      }',
 '      if (d.scanning) {',
 '        document.getElementById("scanDot").classList.add("scanning");',
 '        document.getElementById("scanStatusText").textContent = "Scanne...";',
+'        document.getElementById("repoList").innerHTML =',
+'          "<div class=\"empty-state\"><div class=\"icon\" style=\"animation:spin 1.5s linear infinite;display:inline-block\">&#8635;</div><p>GitHub wird gescannt...</p></div>";',
 '        pollForScanComplete();',
 '      }',
 '    })',
-'    .catch(function(e){ console.error("Init error:", e); });',
-'})();'
+'    .catch(function(e) {',
+'      document.getElementById("repoList").innerHTML =',
+'        "<div class=\"empty-state\"><div class=\"icon\">&#9888;&#65039;</div><p style=\"color:var(--red)\">Verbindungsfehler: " + esc(e.message) + "</p></div>";',
+'      console.error("Init error:", e);',
+'    });',
+'})();',
+'',
+'function showScanError(msg) {',
+'  document.getElementById("repoList").innerHTML =',
+'    "<div class=\"empty-state\"><div class=\"icon\">&#9888;&#65039;</div>" +',
+'    "<p style=\"color:var(--red);margin-bottom:8px\">Scan-Fehler:</p>" +',
+'    "<p style=\"color:var(--text-muted);font-size:13px;max-width:600px;word-break:break-word\">" + esc(msg) + "</p>" +',
+'    "<p style=\"margin-top:12px;font-size:12px;color:var(--text-dim)\">Tipp: GitHub Token in den Einstellungen hinterlegen (60 Anfragen/h ohne Token)</p>" +',
+'    "</div>";',
+'}'
         ].join('\n');
     }
 }
