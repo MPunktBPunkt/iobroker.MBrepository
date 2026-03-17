@@ -1,6 +1,6 @@
 # ioBroker MB Repository Manager
 
-[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/MPunktBPunkt/iobroker.mbrepository)
+[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](https://github.com/MPunktBPunkt/iobroker.mbrepository)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D16-brightgreen.svg)](https://nodejs.org)
 
@@ -118,6 +118,10 @@ iobroker restart mbrepository
 ---
 
 ## Changelog
+
+### 0.4.0 (2026-03-18)
+* **Bugfix:** JS-Escaping in `init()` und `showScanError()` korrigiert — `"` in single-quoted Node.js-Strings erzeugte ungültiges Browser-JS → alle Tabs funktionierten nicht
+* Browser-JS wird jetzt zusätzlich via `vm.Script` auf gültiges Syntax geprüft
 
 ### 0.3.0 (2026-03-15)
 * **Bugfix:** `req.abort()` durch `req.destroy()` ersetzt (deprecated in Node.js 14+, Ursache für stille Scan-Fehler)
