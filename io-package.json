@@ -13,7 +13,7 @@
     "authors": [
       "MPunktBPunkt"
     ],
-    "version": "0.3.0",
+    "version": "0.4.0",
     "news": {
       "0.1.0": {
         "en": "Initial release",
@@ -26,6 +26,10 @@
       "0.3.0": {
         "en": "Bugfix: req.abort() replaced, GitHub API errors now shown in UI, auto-scan on empty state",
         "de": "Bugfix: req.abort() ersetzt, GitHub API Fehler werden im UI angezeigt, Auto-Scan bei leerem Zustand"
+      },
+      "0.4.0": {
+        "en": "Bugfix: JS escaping in init/showScanError fixed (tabs broken)",
+        "de": "Bugfix: JS-Escaping in init/showScanError korrigiert (Tabs funktionierten nicht)"
       }
     },
     "license": "MIT",
