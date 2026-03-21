@@ -13,7 +13,7 @@
     "authors": [
       "MPunktBPunkt"
     ],
-    "version": "0.5.3",
+    "version": "0.5.4",
     "news": {
       "0.1.0": {
         "en": "Initial release",
@@ -46,6 +46,10 @@
       "0.5.3": {
         "en": "License changed to GPL-3.0, donation button added",
         "de": "Lizenz auf GPL-3.0 geaendert, Spendenbutton hinzugefuegt"
+      },
+      "0.5.4": {
+        "en": "Bugfix: GitHub rate limit no longer crashes adapter (unhandled rejection fixed)",
+        "de": "Bugfix: GitHub Rate-Limit stuerzt den Adapter nicht mehr ab (unhandled rejection behoben)"
       }
     },
     "license": "GPL-3.0-only",

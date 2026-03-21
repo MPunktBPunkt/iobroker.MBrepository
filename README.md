@@ -1,6 +1,6 @@
 # ioBroker MB Repository Manager
 
-[![Version](https://img.shields.io/badge/version-0.5.3-blue.svg)](https://github.com/MPunktBPunkt/iobroker.mbrepository)
+[![Version](https://img.shields.io/badge/version-0.5.4-blue.svg)](https://github.com/MPunktBPunkt/iobroker.mbrepository)
 [![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)](LICENSE)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-00457C.svg?logo=paypal)](https://www.paypal.com/donate/?business=martin%40bchmnn.de&currency_code=EUR)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D16-brightgreen.svg)](https://nodejs.org)
@@ -119,6 +119,14 @@ iobroker restart mbrepository
 ---
 
 ## Changelog
+
+### 0.5.4 (2026-03-21)
+* **Bugfix:** GitHub Rate-Limit verursachte `UNCAUGHT_EXCEPTION` → Adapter-Absturz
+* **Fix 1:** Auto-Scan beim Start hat jetzt `.catch()` — kein unhandled rejection mehr
+* **Fix 2:** `scanRepositories()` wirft keine Exception mehr nach außen — gibt leeres Array zurück
+* **Fix 3:** Globaler `unhandledRejection`-Handler als letztes Sicherheitsnetz
+* **Fix 4:** Rate-Limit-URL aus Log-Meldungen entfernt (kürzere, lesbare Logs)
+* **Tipp:** GitHub Token in den Einstellungen hinterlegen → 5000 statt 60 Anfragen/h
 
 ### 0.5.3 (2026-03-21)
 * Lizenz auf **GPL v3** geändert (war MIT)

@@ -75,7 +75,11 @@ class MBRepository extends Adapter {
         this.startHttpServer(port);
 
         if (this.config.autoScanOnStart !== false) {
-            setTimeout(() => this.scanRepositories(), 3000);
+            setTimeout(() => {
+                this.scanRepositories().catch(e => {
+                    this.addLog('warn', 'SCAN', 'Auto-Scan fehlgeschlagen: ' + e.message);
+                });
+            }, 3000);
         }
     }
 
@@ -212,8 +216,11 @@ class MBRepository extends Adapter {
             return enriched;
         } catch (e) {
             this.lastScanError = e.message;
-            this.addLog('error', 'SCAN', 'Fehler beim Scannen: ' + e.message);
-            throw e;
+            // URL aus GitHub-Fehlermeldung entfernen (bessere Log-Lesbarkeit)
+            const cleanMsg = e.message.replace(/\s*\(https?:\/\/[^)]+\)/g, '').trim();
+            this.addLog('error', 'SCAN', 'Fehler beim Scannen: ' + cleanMsg);
+            // Kein throw — verhindert unhandled promise rejection und Adapter-Absturz
+            return [];
         } finally {
             this.scanRunning = false;
         }
@@ -1308,6 +1315,11 @@ class MBRepository extends Adapter {
         ].join('\n');
     }
 }
+
+// Globales Sicherheitsnetz gegen unhandled rejections → kein Adapter-Absturz
+process.on('unhandledRejection', (reason) => {
+    console.error('[mbrepository] Unhandled Rejection (abgefangen):', reason && reason.message ? reason.message : String(reason));
+});
 
 const adapter = new MBRepository();
 module.exports = adapter;

@@ -1,6 +1,6 @@
 {
   "name": "iobroker.mbrepository",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "ioBroker Adapter zur Verwaltung aller MPunktBPunkt GitHub-Repositories",
   "author": "MPunktBPunkt",
   "license": "GPL-3.0-only",
