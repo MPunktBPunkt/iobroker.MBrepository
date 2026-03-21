@@ -13,7 +13,7 @@
     "authors": [
       "MPunktBPunkt"
     ],
-    "version": "0.5.0",
+    "version": "0.5.3",
     "news": {
       "0.1.0": {
         "en": "Initial release",
@@ -34,9 +34,21 @@
       "0.5.0": {
         "en": "Bugfix: use 'iobroker url' instead of 'iobroker upgrade' for GitHub adapters",
         "de": "Bugfix: 'iobroker url' statt 'iobroker upgrade' fuer GitHub-Adapter"
+      },
+      "0.5.1": {
+        "en": "Bugfix: repo URL always lowercase, rate limit error shortened",
+        "de": "Bugfix: Repo-URL immer kleingeschrieben, Rate-Limit-Fehler gekuerzt"
+      },
+      "0.5.2": {
+        "en": "New: Latest (main) mode installs unreleased main branch directly",
+        "de": "Neu: Latest (main) Modus installiert direkt den aktuellen main-Branch ohne Release"
+      },
+      "0.5.3": {
+        "en": "License changed to GPL-3.0, donation button added",
+        "de": "Lizenz auf GPL-3.0 geaendert, Spendenbutton hinzugefuegt"
       }
     },
-    "license": "MIT",
+    "license": "GPL-3.0-only",
     "platform": "Javascript/Node.js",
     "main": "main.js",
     "enabled": true,

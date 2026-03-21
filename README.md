@@ -1,7 +1,8 @@
 # ioBroker MB Repository Manager
 
-[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/MPunktBPunkt/iobroker.mbrepository)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.5.3-blue.svg)](https://github.com/MPunktBPunkt/iobroker.mbrepository)
+[![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)](LICENSE)
+[![Donate](https://img.shields.io/badge/Donate-PayPal-00457C.svg?logo=paypal)](https://www.paypal.com/donate/?business=martin%40bchmnn.de&currency_code=EUR)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D16-brightgreen.svg)](https://nodejs.org)
 
 Verwalte alle deine ioBroker-Adapter direkt aus GitHub — Scan, Versionsvergleich, Upgrade, Downgrade und Neuinstallation über ein elegantes Web-Interface.
@@ -26,7 +27,7 @@ Verwalte alle deine ioBroker-Adapter direkt aus GitHub — Scan, Versionsverglei
 ### Option A – direkt von GitHub (empfohlen)
 
 ```bash
-iobroker url https://github.com/MPunktBPunkt/iobroker.mbrepository
+iobroker add https://github.com/MPunktBPunkt/iobroker.mbrepository
 ```
 
 ### Option B – manuell
@@ -119,6 +120,20 @@ iobroker restart mbrepository
 
 ## Changelog
 
+### 0.5.3 (2026-03-21)
+* Lizenz auf **GPL v3** geändert (war MIT)
+* Spendenbutton (PayPal) in README eingefügt
+
+### 0.5.2 (2026-03-21)
+* **Neu:** Toggle "Alle Tags" → **"Latest (main)"** — installiert den aktuellen main-Branch direkt ohne Release
+* Im Latest-Modus: kein Versions-Dropdown, direkt ein-Klick "&#128640; Latest (main) installieren"
+* Versionzeile zeigt "Ziel: main" statt einer Versionsnummer
+* Server: `forceLatest`-Flag überspringt Tag-Anhang in der GitHub-URL
+
+### 0.5.1 (2026-03-18)
+* **Bugfix:** GitHub-URL bei Install/Upgrade immer lowercase — `iobroker.FritzWireguard` → `iobroker.fritzwireguard` (Exit 25 behoben)
+* **Bugfix:** Rate-Limit-Fehlermeldung ohne langen Docs-URL
+
 ### 0.5.0 (2026-03-18)
 * **Bugfix root cause:** `iobroker upgrade <name> <url>` funktioniert nur für Adapter im offiziellen Repository → Exit 53
 * **Fix Upgrade:** `iobroker url <url>` + `iobroker restart <name>`
@@ -153,4 +168,12 @@ iobroker restart mbrepository
 
 ## Lizenz
 
-MIT © MPunktBPunkt
+GNU General Public License v3.0 © MPunktBPunkt
+
+Siehe [LICENSE](LICENSE) für Details.
+
+---
+
+## Spenden
+
+[![Donate](https://img.shields.io/badge/Donate-PayPal-00457C.svg?logo=paypal)](https://www.paypal.com/donate/?business=martin%40bchmnn.de&currency_code=EUR)

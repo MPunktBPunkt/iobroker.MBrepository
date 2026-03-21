@@ -435,13 +435,14 @@ class MBRepository extends Adapter {
                 req.on('end', async () => {
                     try {
                         const { repoName } = JSON.parse(body);
-                        const ghUser  = this.config.githubUser || 'MPunktBPunkt';
-                        const repoUrl = 'https://github.com/' + ghUser + '/' + repoName;
-                        this.addInstallLog('[START] Installiere ' + repoName + '...');
+                        const ghUser    = this.config.githubUser || 'MPunktBPunkt';
+                        const repoLower = repoName.toLowerCase();
+                        const repoUrl   = 'https://github.com/' + ghUser + '/' + repoLower;
+                        this.addInstallLog('[START] Installiere ' + repoLower + '...');
                         res.writeHead(200, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ ok: true, msg: 'Installation gestartet' }));
                         try {
-                            const adName = repoName.replace(/^iobroker\./ , '').toLowerCase();
+                            const adName = repoLower.replace(/^iobroker\./, '');
                             // 1. Lade Adapter-Paket von GitHub
                             this.addInstallLog('[STEP 1/3] iobroker url ' + repoUrl);
                             await this.runCommand('url ' + repoUrl);
@@ -472,12 +473,15 @@ class MBRepository extends Adapter {
                 req.on('data', c => { body += c; });
                 req.on('end', async () => {
                     try {
-                        const { adapterName, repoName, tag } = JSON.parse(body);
-                        const ghUser  = this.config.githubUser || 'MPunktBPunkt';
-                        let repoUrl   = 'https://github.com/' + ghUser + '/' + repoName;
-                        if (tag) repoUrl += '#' + tag;
+                        const { adapterName, repoName, tag, forceLatest } = JSON.parse(body);
+                        const ghUser    = this.config.githubUser || 'MPunktBPunkt';
+                        const repoLower = repoName.toLowerCase();
+                        let repoUrl     = 'https://github.com/' + ghUser + '/' + repoLower;
+                        // forceLatest: kein Tag anhängen → main-Branch
+                        if (!forceLatest && tag) repoUrl += '#' + tag;
 
-                        this.addInstallLog('[START] Upgrade ' + adapterName + (tag ? ' -> ' + tag : ' -> latest') + '...');
+                        const label = forceLatest ? 'main (latest)' : (tag ? tag : 'latest');
+                        this.addInstallLog('[START] Upgrade ' + adapterName + ' -> ' + label + '...');
                         res.writeHead(200, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ ok: true, msg: 'Upgrade gestartet' }));
 
@@ -751,7 +755,7 @@ class MBRepository extends Adapter {
 '    </button>',
 '    <div class="toggle-group">',
 '      <button class="toggle-opt active" id="tog-releases" onclick="setToggle(\'releases\')">Nur Releases</button>',
-'      <button class="toggle-opt"        id="tog-all"      onclick="setToggle(\'all\')">Alle Tags</button>',
+'      <button class="toggle-opt"        id="tog-latest"   onclick="setToggle(\'latest\')">Latest (main)</button>',
 '    </div>',
 '    <div class="scan-status"><span class="dot" id="scanDot"></span><span id="scanStatusText">Kein Scan</span></div>',
 '  </div>',
@@ -874,7 +878,7 @@ class MBRepository extends Adapter {
 'window.setToggle = function(mode) {',
 '  viewMode = mode;',
 '  document.getElementById("tog-releases").classList.toggle("active", mode === "releases");',
-'  document.getElementById("tog-all").classList.toggle("active",      mode === "all");',
+'  document.getElementById("tog-latest").classList.toggle("active",   mode === "latest");',
 '  renderRepoList();',
 '};',
 '',
@@ -950,11 +954,14 @@ class MBRepository extends Adapter {
 '      ? "<span class=\\"badge badge-installed\\">&#10003; v" + r.installed + " installiert</span>"',
 '      : "<span class=\\"badge badge-not-installed\\">nicht installiert</span>";',
 '',
-'    var versions = viewMode === "releases" ? r.releases : r.tags;',
+'    // Im Latest-Modus: kein Versions-Dropdown, immer main-Branch',
+'    var isLatest    = viewMode === "latest";',
+'    var versions    = viewMode === "releases" ? r.releases : r.tags;',
 '    var latestLabel = r.latestRelease ? r.latestRelease.tag : (r.latestTag ? r.latestTag.name : null);',
+'    var latestDisp  = isLatest ? "main" : latestLabel;',
 '',
 '    var statusBadge = "";',
-'    if (r.installed && latestLabel) {',
+'    if (!isLatest && r.installed && latestLabel) {',
 '      var instClean   = r.installed.replace(/^v/, "");',
 '      var latestClean = latestLabel.replace(/^v/, "");',
 '      var cmp = semverCmp(instClean, latestClean);',
@@ -963,18 +970,20 @@ class MBRepository extends Adapter {
 '      } else if (cmp > 0) {',
 '        statusBadge = "<span class=\\"badge badge-newer\\">&#11015; Neuer als GitHub</span>";',
 '      } else {',
-'        statusBadge = "<span class=\\"badge badge-update\\">&#8679; Update verf\u00fcgbar</span>";',
+'        statusBadge = "<span class=\\"badge badge-update\\">&#8679; Update verfügbar</span>";',
 '      }',
+'    } else if (isLatest && r.installed) {',
+'      statusBadge = "<span class=\\"badge badge-release\\">&#128640; main installierbar</span>";',
 '    }',
 '',
 '    var versionRow = "";',
-'    if (r.installed || latestLabel) {',
+'    if (r.installed || latestDisp) {',
 '      versionRow = "<div class=\\"version-row\\">" +',
 '        "<span class=\\"version-label\\">Installiert:</span>" +',
-'        "<span class=\\"version-value\\" style=\\"color:var(--green)\\">" + (r.installed || "\u2014") + "</span>" +',
+'        "<span class=\\"version-value\\" style=\\"color:var(--green)\\">" + (r.installed || "—") + "</span>" +',
 '        "<span class=\\"version-arrow\\">&#10142;</span>" +',
-'        "<span class=\\"version-label\\">Aktuell:</span>" +',
-'        "<span class=\\"version-value\\" style=\\"color:var(--blue)\\">" + (latestLabel || "\u2014") + "</span>" +',
+'        "<span class=\\"version-label\\">" + (isLatest ? "Ziel:" : "Aktuell:") + "</span>" +',
+'        "<span class=\\"version-value\\" style=\\"color:var(--blue)\\">" + (latestDisp || "—") + "</span>" +',
 '        "</div>";',
 '    }',
 '',
@@ -985,10 +994,15 @@ class MBRepository extends Adapter {
 '',
 '    var actionsHtml = "";',
 '    if (r.installed) {',
-'      actionsHtml += "<select class=\\"select-version\\" id=\\"sel-" + r.name + "\\">" +',
-'        "<option value=\\"\\">-- Version w\u00e4hlen --</option>" + selectOpts + "</select>";',
-'      actionsHtml += "<button class=\\"btn btn-success\\" onclick=\\"doUpgrade(\'" + r.name + "\',\'" + r.adapterName + "\')\\">" +',
-'        "&#8679; Upgrade / Downgrade</button>";',
+'      if (isLatest) {',
+'        actionsHtml += "<button class=\\"btn btn-success\\" onclick=\\"doUpgrade(\'" + r.name + "\',\'" + r.adapterName + "\',true)\\">"+',
+'          "&#128640; Latest (main) installieren</button>";',
+'      } else {',
+'        actionsHtml += "<select class=\\"select-version\\" id=\\"sel-" + r.name + "\\">"+',
+'          "<option value=\\"\\">-- Version wählen --</option>" + selectOpts + "</select>";',
+'        actionsHtml += "<button class=\\"btn btn-success\\" onclick=\\"doUpgrade(\'" + r.name + "\',\'" + r.adapterName + "\')\\">" +',
+'          "&#8679; Upgrade / Downgrade</button>";',
+'      }',
 '    } else {',
 '      actionsHtml += "<button class=\\"btn btn-primary\\" onclick=\\"doInstallRepo(\'" + r.name + "\')\\">" +',
 '        "&#128640; Installieren</button>";',
@@ -1016,15 +1030,16 @@ class MBRepository extends Adapter {
 '}',
 '',
 '// ── Upgrade / Downgrade ────────────────────────────────────────────────',
-'window.doUpgrade = function(repoName, adapterName) {',
-'  var sel = document.getElementById("sel-" + repoName);',
-'  var tag = sel ? sel.value : "";',
-'  if (!confirm("Adapter \\"" + adapterName + "\\" " + (tag ? "auf " + tag + " " : "auf neueste Version ") + "aktualisieren?")) return;',
+'window.doUpgrade = function(repoName, adapterName, forceLatest) {',
+'  var sel = !forceLatest ? document.getElementById("sel-" + repoName) : null;',
+'  var tag = (sel && sel.value) ? sel.value : null;',
+'  var label = forceLatest ? "Latest (main)" : (tag ? tag : "neueste Version");',
+'  if (!confirm("Adapter \\"" + adapterName + "\\" auf " + label + " aktualisieren?")) return;',
 '  showTab("system");',
 '  fetch("/api/upgrade", {',
 '    method: "POST",',
 '    headers: { "Content-Type": "application/json" },',
-'    body: JSON.stringify({ repoName: repoName, adapterName: adapterName, tag: tag || null })',
+'    body: JSON.stringify({ repoName: repoName, adapterName: adapterName, tag: tag, forceLatest: !!forceLatest })',
 '  }).then(function(r){ return r.json(); })',
 '  .then(function(d){ addDebugLine("[UI] " + d.msg, "start"); })',
 '  .catch(function(e){ addDebugLine("[UI] Fehler: " + e.message, "fail"); });',
@@ -1212,7 +1227,8 @@ class MBRepository extends Adapter {
 '    .then(function(r){ return r.json(); })',
 '    .then(function(d) {',
 '      document.getElementById("sysVerInst").textContent   = d.installed || "-";',
-'      document.getElementById("sysVerLatest").textContent = d.latest    || (d.error ? "Fehler: " + d.error : "-");',
+'      var errShort = d.error ? d.error.replace(/\\(https?:\\/\\/[^)]+\\)/g, "").trim() : null;',
+'      document.getElementById("sysVerLatest").textContent = d.latest || (errShort ? "Fehler: " + errShort : "-");',
 '      var btn = document.getElementById("btnSelfUpdate");',
 '      if (d.latest && d.installed && d.latest !== ("v" + d.installed) && d.latest !== d.installed) {',
 '        btn.style.display = "inline-flex";',

@@ -31,7 +31,7 @@ Verbindungstest / Health-Check.
 {
   "ok": true,
   "adapter": "mbrepository",
-  "version": "0.2.0"
+  "version": "0.5.3"
 }
 ```
 
