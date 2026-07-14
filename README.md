@@ -1,6 +1,6 @@
 # ioBroker MB Repository Manager
 
-[![Version](https://img.shields.io/badge/version-0.5.4-blue.svg)](https://github.com/MPunktBPunkt/iobroker.mbrepository)
+[![Version](https://img.shields.io/badge/version-0.5.5-blue.svg)](https://github.com/MPunktBPunkt/iobroker.mbrepository)
 [![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D16-brightgreen.svg)](https://nodejs.org)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-00457C.svg?logo=paypal)](https://www.paypal.com/donate/?business=martin%40bchmnn.de&currency_code=EUR)
@@ -11,7 +11,7 @@ Verwalte alle deine ioBroker-Adapter direkt aus GitHub — Scan, Versionsverglei
 
 ## Features
 
-* 🔍 **GitHub-Scanner** – Listet automatisch alle `iobroker.*`-Repositories deines GitHub-Accounts auf
+* 🔍 **GitHub-Scanner** – Listet automatisch alle `ioBroker.*` / `iobroker.*`-Repositories deines GitHub-Accounts auf (Schreibweise egal)
 * 📦 **Versionsvergleich** – Zeigt installierte vs. verfügbare Version (semver-korrekt)
 * ⬆️ **Upgrade / Downgrade** – Auf beliebigen Release oder Tag aktualisieren
 * 🚀 **Latest (main)** – Aktuellen main-Branch direkt installieren ohne Release

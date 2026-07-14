@@ -8,6 +8,20 @@ const path  = require('path');
 const { exec }        = require('child_process');
 
 const IOBROKER_MODULES = '/opt/iobroker/node_modules';
+const IOBROKER_REPO_PREFIX = /^iobroker\./i;
+
+/** GitHub-Repo: ioBroker.meinAdapter — npm/node_modules: iobroker.meinadapter */
+function isIoBrokerRepo(name) {
+    return IOBROKER_REPO_PREFIX.test(name);
+}
+
+function getNpmPackageName(repoName) {
+    return repoName.toLowerCase();
+}
+
+function getAdapterInstanceName(repoName) {
+    return repoName.replace(IOBROKER_REPO_PREFIX, '').toLowerCase();
+}
 
 class MBRepository extends Adapter {
     constructor(options) {
@@ -151,9 +165,7 @@ class MBRepository extends Adapter {
                 page++;
             }
 
-            const ioRepos = allRepos.filter(r =>
-                r.name.toLowerCase().startsWith('iobroker.')
-            );
+            const ioRepos = allRepos.filter(r => isIoBrokerRepo(r.name));
             this.addLog('info', 'SCAN', ioRepos.length + ' ioBroker-Repositories gefunden');
 
             const enriched = [];
@@ -179,7 +191,8 @@ class MBRepository extends Adapter {
 
                 enriched.push({
                     name:          repo.name,
-                    adapterName:   repo.name.replace(/^iobroker\./i, ''),
+                    adapterName:   getAdapterInstanceName(repo.name),
+                    npmPackage:    getNpmPackageName(repo.name),
                     description:   repo.description || '',
                     url:           repo.html_url,
                     updatedAt:     repo.updated_at,
@@ -226,14 +239,25 @@ class MBRepository extends Adapter {
         }
     }
 
+    resolveRepoName(repoName) {
+        const npmName = getNpmPackageName(repoName);
+        const found = this.repos.find(r => getNpmPackageName(r.name) === npmName);
+        return found ? found.name : repoName;
+    }
+
+    getSelfRepoName() {
+        const self = this.repos.find(r => getAdapterInstanceName(r.name) === 'mbrepository');
+        return self ? self.name : getNpmPackageName(this.pack && this.pack.name ? this.pack.name : 'iobroker.mbrepository');
+    }
+
     getInstalledVersion(repoName) {
-        // Versuche verschiedene Schreibweisen: original, lowercase, uppercase-ersten-Buchstaben
+        const npmName = getNpmPackageName(repoName);
         const variants = [
             repoName,
-            repoName.toLowerCase(),
+            npmName,
             repoName.charAt(0).toUpperCase() + repoName.slice(1),
-            // iobroker.MBrepository -> iobroker.mbrepository etc.
-            repoName.replace(/\.(.)/,  (_, c) => '.' + c.toUpperCase()),
+            // ioBroker.MBrepository -> iobroker.mbrepository etc.
+            repoName.replace(/^iobroker/i, 'ioBroker'),
         ];
         for (const name of variants) {
             try {
@@ -246,7 +270,7 @@ class MBRepository extends Adapter {
         }
         // Noch robuster: alle Ordner in node_modules durchsuchen (case-insensitive)
         try {
-            const lowerName = repoName.toLowerCase();
+            const lowerName = npmName;
             const entries = fs.readdirSync(IOBROKER_MODULES);
             for (const entry of entries) {
                 if (entry.toLowerCase() === lowerName) {
@@ -442,14 +466,14 @@ class MBRepository extends Adapter {
                 req.on('end', async () => {
                     try {
                         const { repoName } = JSON.parse(body);
-                        const ghUser    = this.config.githubUser || 'MPunktBPunkt';
-                        const repoLower = repoName.toLowerCase();
-                        const repoUrl   = 'https://github.com/' + ghUser + '/' + repoLower;
-                        this.addInstallLog('[START] Installiere ' + repoLower + '...');
+                        const ghUser        = this.config.githubUser || 'MPunktBPunkt';
+                        const actualRepo    = this.resolveRepoName(repoName);
+                        const repoUrl       = 'https://github.com/' + ghUser + '/' + actualRepo;
+                        const adName        = getAdapterInstanceName(actualRepo);
+                        this.addInstallLog('[START] Installiere ' + actualRepo + '...');
                         res.writeHead(200, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ ok: true, msg: 'Installation gestartet' }));
                         try {
-                            const adName = repoLower.replace(/^iobroker\./, '');
                             // 1. Lade Adapter-Paket von GitHub
                             this.addInstallLog('[STEP 1/3] iobroker url ' + repoUrl);
                             await this.runCommand('url ' + repoUrl);
@@ -481,14 +505,15 @@ class MBRepository extends Adapter {
                 req.on('end', async () => {
                     try {
                         const { adapterName, repoName, tag, forceLatest } = JSON.parse(body);
-                        const ghUser    = this.config.githubUser || 'MPunktBPunkt';
-                        const repoLower = repoName.toLowerCase();
-                        let repoUrl     = 'https://github.com/' + ghUser + '/' + repoLower;
+                        const ghUser     = this.config.githubUser || 'MPunktBPunkt';
+                        const actualRepo = this.resolveRepoName(repoName);
+                        let repoUrl      = 'https://github.com/' + ghUser + '/' + actualRepo;
+                        const adName     = adapterName || getAdapterInstanceName(actualRepo);
                         // forceLatest: kein Tag anhängen → main-Branch
                         if (!forceLatest && tag) repoUrl += '#' + tag;
 
                         const label = forceLatest ? 'main (latest)' : (tag ? tag : 'latest');
-                        this.addInstallLog('[START] Upgrade ' + adapterName + ' -> ' + label + '...');
+                        this.addInstallLog('[START] Upgrade ' + adName + ' -> ' + label + '...');
                         res.writeHead(200, { 'Content-Type': 'application/json' });
                         res.end(JSON.stringify({ ok: true, msg: 'Upgrade gestartet' }));
 
@@ -497,10 +522,10 @@ class MBRepository extends Adapter {
                             this.addInstallLog('[STEP 1/2] iobroker url ' + repoUrl);
                             await this.runCommand('url ' + repoUrl);
                             // 2. Adapter neu starten (ioBroker lädt die neue Version beim Start)
-                            this.addInstallLog('[STEP 2/2] iobroker restart ' + adapterName);
-                            await this.runCommand('restart ' + adapterName);
-                            this.addLog('info', 'UPGRADE', adapterName + ' erfolgreich aktualisiert');
-                            this.addInstallLog('[SUCCESS] ' + adapterName + ' aktualisiert und neu gestartet');
+                            this.addInstallLog('[STEP 2/2] iobroker restart ' + adName);
+                            await this.runCommand('restart ' + adName);
+                            this.addLog('info', 'UPGRADE', adName + ' erfolgreich aktualisiert');
+                            this.addInstallLog('[SUCCESS] ' + adName + ' aktualisiert und neu gestartet');
                             await this.scanRepositories();
                         } catch (e) {
                             this.addLog('error', 'UPGRADE', 'Upgrade fehlgeschlagen: ' + e.message);
@@ -518,8 +543,9 @@ class MBRepository extends Adapter {
             if (pathname === '/api/version') {
                 try {
                     const ghUser = this.config.githubUser || 'MPunktBPunkt';
+                    const selfRepo = this.getSelfRepoName();
                     const rel = await this.fetchJson(
-                        'https://api.github.com/repos/' + ghUser + '/iobroker.mbrepository/releases/latest'
+                        'https://api.github.com/repos/' + ghUser + '/' + selfRepo + '/releases/latest'
                     );
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ ok: true, installed: this.pack.version, latest: rel.tag_name || 'unbekannt' }));
@@ -536,7 +562,7 @@ class MBRepository extends Adapter {
                 res.end(JSON.stringify({ ok: true, msg: 'Self-Update gestartet' }));
                 const ghUser = this.config.githubUser || 'MPunktBPunkt';
                 this.addInstallLog('[START] Self-Update MBRepository...');
-                const selfUrl = 'https://github.com/' + ghUser + '/iobroker.mbrepository';
+                const selfUrl = 'https://github.com/' + ghUser + '/' + this.getSelfRepoName();
                 this.addInstallLog('[STEP 1/2] iobroker url ' + selfUrl);
                 this.runCommand('url ' + selfUrl)
                 .then(() => {
