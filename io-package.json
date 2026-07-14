@@ -13,7 +13,7 @@
     "authors": [
       "MPunktBPunkt"
     ],
-    "version": "0.5.4",
+    "version": "0.5.5",
     "news": {
       "0.1.0": {
         "en": "Initial release",
@@ -50,6 +50,10 @@
       "0.5.4": {
         "en": "Bugfix: GitHub rate limit no longer crashes adapter (unhandled rejection fixed)",
         "de": "Bugfix: GitHub Rate-Limit stuerzt den Adapter nicht mehr ab (unhandled rejection behoben)"
+      },
+      "0.5.5": {
+        "en": "Support official ioBroker.* GitHub repo naming (capital B), case-insensitive npm lookup",
+        "de": "Unterstuetzung fuer offizielle ioBroker.* GitHub-Repo-Namen (grosses B), npm-Suche case-insensitiv"
       }
     },
     "license": "GPL-3.0-only",
